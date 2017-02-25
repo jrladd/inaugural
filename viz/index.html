@@ -37,7 +37,7 @@ var svg = d3.select("svg"),
     width = +svg.attr("width"),
     height = +svg.attr("height");
 
-var graph;
+var graph; //Global variable for the graph
 
 svg.append('rect')
     .attr('width', '100%')
@@ -49,8 +49,7 @@ svg.call(d3.zoom().on('zoom', zoomed)).on("dblclick.zoom", null);
 
 var container = svg.append('g');
 
-// Create form for search (see function below).
-var search = d3.select("div#tools").append('form').attr('onsubmit', 'return false;');
+//Create scales for color and edge weight
 
 var color = d3.scaleOrdinal()
     .domain([0,1])
@@ -59,6 +58,9 @@ var color = d3.scaleOrdinal()
 var weight = d3.scaleLinear()
     .domain([0,1])
     .range([1,5]);
+
+// Create form for search (see function below).
+var search = d3.select("div#tools").append('form').attr('onsubmit', 'return false;');
 
 var box = search.append('input')
 	.attr('type', 'text')
@@ -70,9 +72,10 @@ var button = search.append('input')
 	.attr('value', 'Search')
 	.on('click', function () { searchNodes(); });
 
-// Toggle for ego networks on click (below).
+//Toggle for ego networks on click (function below).
 var toggle = 0;
 
+//Create groups for nodes and links
 var link = container.append("g")
     .attr("class", "links")
   .selectAll(".link"),
@@ -81,6 +84,7 @@ var link = container.append("g")
     .selectAll(".node");
 
 
+//Get data from json file, assign that data to graph variable.
 d3.json("../data/inaugural.json", function(error, json) {
   if (error) throw error;
 
@@ -96,7 +100,7 @@ function zoomed() {
 	  container.attr("transform", "translate(" + d3.event.transform.x + ", " + d3.event.transform.y + ") scale(" + d3.event.transform.k + ")");
 }
 
-// Search for graph.nodes by making all unmatched graph.nodes temporarily transparent.
+// Search for nodes by making all unmatched nodes temporarily transparent.
 function searchNodes() {
 	var term = document.getElementById('searchTerm').value;
 	var selected = container.selectAll('.node').filter(function (d, i) {
@@ -114,6 +118,7 @@ function searchNodes() {
 //Draw the graph!
 function update() {
 
+  //Parameters for force layout simulation
   var simulation = d3.forceSimulation(graph.nodes)
       .force("link", d3.forceLink(graph.links))//.id(function(d) { return d.id; }))
       .force("charge", d3.forceManyBody().strength([-300]))//.distanceMax([500]))
@@ -122,10 +127,14 @@ function update() {
       .force("y", d3.forceY())
       .stop();
 
+  //The graph will be drawn behind the scenes and then displayed in static form.
+  //This code tells the program how many times to iterate through the layout simulation.
   for (var i = 0, n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay())); i < n; ++i) {
     simulation.tick();
   }
-  // Data join with only those new links and corresponding nodes.
+
+  // Data join with links and corresponding nodes.
+  //If we wanted to reload the graph with an adjusted node set, we could do so.
   link = link.data(graph.links, function(d) {return d.source.id + ', ' + d.target.id;});
   link.exit().remove();
   var linkEnter = link.enter().append('line')
@@ -141,15 +150,14 @@ function update() {
   node = node.data(graph.nodes, function(d) {return d.id;});
   node.exit().remove();
   var nodeEnter = node.enter().append('circle')
-  .attr('r', 10)//function(d) { return degreeSize(d.degree, graph);})
-  // Color by degree centrality calculation in NetworkX.
-  .attr("fill", function(d) { return color(d.bipartite); })
+  .attr('r', 10)
+  .attr("fill", function(d) { return color(d.bipartite); }) // Color by bipartite attribute.
     .attr('class', 'node')
     .attr('id', function(d) { return "n" + d.id.toString(); })
     .attr('clickToggle', 0)
     .attr("cx", function(d) { return d.x; })
     .attr("cy", function(d) { return d.y; })
-    // On click, toggle ego networks for the selected node. (See function above.)
+    // On click, toggle ego networks for the selected node. (See function below.)
     .on('click', function(d) { toggleClick(d); });
 
 
@@ -160,11 +168,11 @@ function update() {
 
 }
 
-// A function to handle click toggling based on neighboring graph.nodes.
+// A function to handle click toggling based on neighboring nodes.
 function toggleClick(d) {
 
 
-  // Make object of all neighboring graph.nodes.
+  // Make object of all neighboring nodes.
    connectedNodes = {};
    connectedNodes[d.id] = true;
    graph.links.forEach(function(l) {
@@ -173,7 +181,7 @@ function toggleClick(d) {
    });
 
       if (toggle == 0) {
-        // Ternary operator restyles graph.links and graph.nodes if they are adjacent.
+        // Ternary operator restyles links and nodes if they are adjacent.
         d3.selectAll('.link').style('stroke-opacity', function (l) {
           return l.target == d || l.source == d ? 1 : 0.2;
         });
@@ -187,7 +195,7 @@ function toggleClick(d) {
         toggle = 1;
       }
       else {
-        // Restore graph.nodes and graph.links to normal opacity.
+        // Restore nodes and links to normal opacity.
         d3.selectAll('.link').style('stroke-opacity', 0.6);
         d3.selectAll('.node').style('opacity', 1);
         d3.selectAll('span').remove();
