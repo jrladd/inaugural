@@ -31,6 +31,7 @@ form, select {
 <div id='tools'></div>
 <svg width="960" height="600"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 <script>
 
 var svg = d3.select("svg"),
@@ -51,9 +52,9 @@ var container = svg.append('g');
 
 //Create scales for color and edge weight
 
-var color = d3.scaleOrdinal()
-    .domain([0,1])
-    .range(['#87a9cf','#FFA500']);
+var color = d3.scaleLinear()
+    .domain([1776,2017])
+    .range([0.1,1]);
 
 var weight = d3.scaleLinear()
     .domain([0,1])
@@ -151,7 +152,7 @@ function update() {
   node.exit().remove();
   var nodeEnter = node.enter().append('circle')
   .attr('r', 10)
-  .attr("fill", function(d) { return color(d.bipartite); }) // Color by bipartite attribute.
+  .attr("fill", function(d) { if (d.bipartite == 1) {return '#FFA500';} else { var person_data = d.id.split('_'); return d3.interpolateBlues(color(parseInt(person_data[person_data.length-1])));} })//return color(d.bipartite); }) // Color by bipartite attribute.
     .attr('class', 'node')
     .attr('id', function(d) { return "n" + d.id.toString(); })
     .attr('clickToggle', 0)
